@@ -1,0 +1,7 @@
+.git
+.venv
+instance
+__pycache__
+.env
+original.html
+test_app.py
