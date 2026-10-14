@@ -164,6 +164,24 @@ class AppTests(unittest.TestCase):
         self.assertEqual(boot['state']['weights'][0]['kg'],80.5)
         self.assertTrue(boot['state']['legacyTrainingDays'][day])
 
+    def test_opening_uses_each_authenticated_student_name(self):
+        one=self.student('one@example.test');two=self.student('two@example.test')
+        with self.connection() as db:
+            sql='UPDATE users SET name=? WHERE id=?'
+            sql=sql.replace('?','%s') if self.pg_url else sql
+            db.execute(sql,('Douglas',one))
+            db.execute(sql,('Maria <Teste>',two))
+        for email,expected,unexpected in [('one@example.test','Douglas','Maria'),('two@example.test','Maria &lt;Teste&gt;','Douglas')]:
+            client,_=self.activate_student(email)
+            with client.get('/aluno') as response:
+                self.assertEqual(response.status_code,200)
+                welcome=re.search(r'id="welcome-user-name"><span>(.*?)</span>',response.text).group(1)
+                splash=re.search(r'id="splash-user-name">(.*?)</div>',response.text).group(1)
+                self.assertEqual(welcome,expected)
+                self.assertTrue(splash.startswith(expected+' ·'))
+                self.assertNotIn(unexpected,welcome)
+                self.assertNotIn('WEN<span>DEL',response.text)
+
     def test_bootstrap_only_once_and_secure_cookie(self):
         with self.connection() as db:
             db.execute('DELETE FROM sessions')
