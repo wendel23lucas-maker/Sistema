@@ -1,12 +1,19 @@
 """Small DB-API adapter: SQLite locally; PostgreSQL for hosted instances."""
 import sqlite3
+import os
+import certifi
 import psycopg
 from psycopg.rows import dict_row
 
 
 class Postgres:
     def __init__(self, url, local_test=False):
-        options = {} if local_test else {'sslmode':'verify-full', 'sslrootcert':'system'}
+        # Serverless images may lack a usable operating-system CA bundle.
+        # Ship Mozilla's trusted roots rather than depending on that image.
+        options = {} if local_test else {
+            'sslmode': 'verify-full',
+            'sslrootcert': os.environ.get('PGSSLROOTCERT') or certifi.where(),
+        }
         self.connection = psycopg.connect(url, row_factory=dict_row, connect_timeout=10, **options)
 
     def execute(self, sql, parameters=()):
