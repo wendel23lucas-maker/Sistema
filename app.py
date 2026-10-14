@@ -183,7 +183,8 @@ def create_app(database=None, testing=False):
             rows = db().execute('SELECT * FROM progress WHERE user_id=? ORDER BY day DESC', (g.user['id'],)).fetchall()
             payload['state'] = {'calData':{r['day']:{'water':r['water'],'peso':r['weight'] or 0,'treino':bool(r['trained'])} for r in rows},'weights':[{'kg':r['weight'],'date':r['day'],'dayKey':r['day']} for r in rows if r['weight']],'legacyTrainingDays':{r['day']:True for r in rows if r['trained']}}
         page = (Path(app.root_path) / 'student.html').read_text()
-        page=page.replace('<!--BLACKFIT_NAME-->',str(escape(g.user['name'])))
+        display_name=' '.join(g.user['name'].split()[:2])
+        page=page.replace('<!--BLACKFIT_NAME-->',str(escape(display_name)))
         return page.replace('<!--BLACKFIT_BOOTSTRAP-->', '<script id="blackfit-data" type="application/json">'+str(htmlsafe_json_dumps(payload))+'</script>')
 
     @app.get('/api/student-state')

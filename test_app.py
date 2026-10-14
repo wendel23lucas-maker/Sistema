@@ -169,9 +169,9 @@ class AppTests(unittest.TestCase):
         with self.connection() as db:
             sql='UPDATE users SET name=? WHERE id=?'
             sql=sql.replace('?','%s') if self.pg_url else sql
-            db.execute(sql,('Douglas',one))
-            db.execute(sql,('Maria <Teste>',two))
-        for email,expected,unexpected in [('one@example.test','Douglas','Maria'),('two@example.test','Maria &lt;Teste&gt;','Douglas')]:
+            db.execute(sql,('Douglas   Silva Santos',one))
+            db.execute(sql,('Maria <Teste> Souza',two))
+        for email,expected,unexpected in [('one@example.test','Douglas Silva','Santos'),('two@example.test','Maria &lt;Teste&gt;','Souza')]:
             client,_=self.activate_student(email)
             with client.get('/aluno') as response:
                 self.assertEqual(response.status_code,200)
