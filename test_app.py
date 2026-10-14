@@ -2,6 +2,8 @@ import sqlite3
 import tempfile
 import unittest
 import os
+import re
+import json
 from unittest.mock import patch
 import psycopg
 from pathlib import Path
@@ -116,6 +118,51 @@ class AppTests(unittest.TestCase):
         for _ in range(8):
             self.assertEqual(client.post('/api/login',json={'email':'missing@example.test','password':'incorrect'},headers={'X-Sistema-Request':'1'}).status_code,401)
         self.assertEqual(client.post('/api/login',json={'email':'missing@example.test','password':'incorrect'},headers={'X-Sistema-Request':'1'}).status_code,429)
+
+    def test_original_app_state_isolated_and_visible_to_admin(self):
+        one=self.student('one@example.test');two=self.student('two@example.test')
+        client,csrf=self.activate_student('one@example.test')
+        day=date.today().isoformat()
+        payload={'state':{'water':500,'calData':{day:{'water':500,'peso':80.5,'treino':True}},'exChecks':{'checks_'+day.replace('-','_'):{'A':{'0':True}}}},'pro':{'sugarDone':{day:True},'dailyGoals':{}},'version':0,'user_id':two}
+        response=self.mutate(client,csrf,'/api/student-state',payload)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json['version'],1)
+        self.assertEqual(client.get('/api/student-state').json['state']['water'],500)
+        other,other_csrf=self.activate_student('two@example.test')
+        self.assertEqual(other.get('/api/student-state').json['state'],{})
+        self.assertEqual(self.mutate(client,csrf,'/api/student-state',payload).status_code,409)
+        payload['version']=1;payload['state']['water']=750
+        self.assertEqual(self.mutate(client,csrf,'/api/student-state',payload).json['version'],2)
+        record=self.admin.get(f'/api/students/{one}').json['progress'][0]
+        self.assertTrue(record['sugar_done'])
+        self.assertEqual(record['exercises_done'],1)
+        self.assertEqual(record['water'],500)
+        restarted=create_app(self.database,testing=True).test_client()
+        self.login(restarted,'one@example.test','Student-private-2026')
+        self.assertEqual(restarted.get('/api/student-state').json['state']['water'],750)
+        self.assertEqual(self.app.test_client().get('/aluno').status_code,302)
+        with client.get('/aluno') as response:
+            self.assertEqual(response.status_code,200)
+            self.assertIn('120 dias sem açúcar',response.text)
+            self.assertIn('blackfit-data',response.text)
+            self.assertEqual(response.headers['Cache-Control'],'no-store')
+
+    def test_original_state_rejects_invalid_shapes_and_photo_urls(self):
+        self.student('one@example.test');client,csrf=self.activate_student('one@example.test')
+        for data in [{'state':{'calData':[]},'pro':{},'version':0},{'state':{},'pro':{'sugarDone':[]},'version':0},{'state':{'photos':[{'src':'javascript:alert(1)'}]},'pro':{},'version':0}]:
+            self.assertEqual(self.mutate(client,csrf,'/api/student-state',data).status_code,400)
+        for path in ['/student-bridge.js','/student-core.js','/student-pro.js','/vendor/chart.umd.js']:
+            with client.get(path) as response:self.assertEqual(response.status_code,200)
+
+    def test_existing_progress_imported_into_original_screen(self):
+        self.student('one@example.test');client,csrf=self.activate_student('one@example.test')
+        day=date.today().isoformat()
+        self.mutate(client,csrf,'/api/progress',{'day':day,'weight':80.5,'water':750,'trained':True})
+        with client.get('/aluno') as response:
+            boot=json.loads(re.search(r'<script id="blackfit-data" type="application/json">(.*?)</script>',response.text).group(1))
+        self.assertEqual(boot['state']['calData'][day]['water'],750)
+        self.assertEqual(boot['state']['weights'][0]['kg'],80.5)
+        self.assertTrue(boot['state']['legacyTrainingDays'][day])
 
     def test_bootstrap_only_once_and_secure_cookie(self):
         with self.connection() as db:

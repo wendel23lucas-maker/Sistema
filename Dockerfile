@@ -3,6 +3,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py database.py app.js style.css index.html manifest.webmanifest sw.js ./
+COPY student.html student-bridge.js student-core.js student-pro.js ./
+COPY vendor ./vendor
 COPY icons ./icons
 RUN useradd --create-home --uid 10001 blackfit && mkdir /data && chown blackfit:blackfit /data
 USER blackfit

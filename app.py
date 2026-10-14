@@ -3,6 +3,9 @@ import sqlite3
 import secrets
 import time
 import hashlib
+import json
+import base64
+import binascii
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 from functools import wraps
@@ -15,7 +18,7 @@ from database import Postgres
 
 def create_app(database=None, testing=False):
     app = Flask(__name__, static_folder=None)
-    app.config.update(TESTING=testing, MAX_CONTENT_LENGTH=100_000)
+    app.config.update(TESTING=testing, MAX_CONTENT_LENGTH=4_000_000)
     db_url = os.environ.get('DATABASE_URL') if database is None else None
     if os.environ.get('VERCEL') and not db_url:
         raise RuntimeError('Configure DATABASE_URL com um PostgreSQL persistente na Vercel.')
@@ -54,7 +57,7 @@ def create_app(database=None, testing=False):
         CREATE TABLE IF NOT EXISTS plans (
             user_id INTEGER PRIMARY KEY REFERENCES users(id), diet TEXT NOT NULL DEFAULT '',
             workout TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '',
-            water_goal INTEGER NOT NULL DEFAULT 2500, updated_at TEXT NOT NULL);
+            water_goal INTEGER NOT NULL DEFAULT 3500, updated_at TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS progress (
             id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id),
             day TEXT NOT NULL, weight REAL, water INTEGER NOT NULL DEFAULT 0,
@@ -63,6 +66,9 @@ def create_app(database=None, testing=False):
         CREATE UNIQUE INDEX IF NOT EXISTS one_admin ON users(role) WHERE role='admin';
         CREATE TABLE IF NOT EXISTS login_attempts (attempt_key TEXT NOT NULL, created_at DOUBLE PRECISION NOT NULL);
         CREATE INDEX IF NOT EXISTS login_attempt_key ON login_attempts(attempt_key,created_at);
+        CREATE TABLE IF NOT EXISTS student_state (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id), state TEXT NOT NULL,
+            pro TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1);
         ''')
         db().commit()
 
@@ -103,6 +109,10 @@ def create_app(database=None, testing=False):
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        if request.path == '/aluno':
+            # The supplied UI uses inline styles and onclick handlers.
+            response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            response.headers['Cache-Control'] = 'no-store'
         if request.path.startswith('/api/'):
             response.headers['Cache-Control'] = 'no-store'
         if request.path == '/sw.js':
@@ -137,15 +147,92 @@ def create_app(database=None, testing=False):
     def invalid_value(exc):
         return error(str(exc))
 
+    @app.errorhandler(413)
+    def too_large(exc):
+        return error('O histórico de fotos excedeu o limite de 4 MB. Remova fotos antigas antes de salvar.',413)
+
     @app.get('/')
     def index():
         return send_from_directory(app.root_path, 'index.html')
 
     @app.get('/<filename>')
     def assets(filename):
-        if filename not in ('app.js', 'style.css', 'manifest.webmanifest', 'sw.js', 'icon.svg'):
+        if filename not in ('app.js', 'style.css', 'manifest.webmanifest', 'sw.js', 'icon.svg', 'student-bridge.js', 'student-core.js', 'student-pro.js'):
             return error('Não encontrado.', 404)
         return send_from_directory(app.root_path, filename)
+
+    @app.get('/vendor/chart.umd.js')
+    def chart_asset():
+        return send_from_directory(Path(app.root_path) / 'vendor', 'chart.umd.js')
+
+    def state_for(user_id):
+        row = db().execute('SELECT state,pro,version FROM student_state WHERE user_id=?', (user_id,)).fetchone()
+        return {'state':json.loads(row['state']), 'pro':json.loads(row['pro']), 'version':row['version']} if row else {'state':{},'pro':{},'version':0}
+
+    @app.get('/aluno')
+    def student_app():
+        from flask import redirect
+        if not g.user or g.user['role'] != 'student' or g.user['must_change']:
+            return redirect('/')
+        from jinja2.utils import htmlsafe_json_dumps
+        payload = state_for(g.user['id'])
+        plan = db().execute('SELECT * FROM plans WHERE user_id=?', (g.user['id'],)).fetchone()
+        payload.update(user=public_user(g.user),csrf=g.csrf,plan=dict(plan) if plan else {})
+        if not payload['state']:
+            rows = db().execute('SELECT * FROM progress WHERE user_id=? ORDER BY day DESC', (g.user['id'],)).fetchall()
+            payload['state'] = {'calData':{r['day']:{'water':r['water'],'peso':r['weight'] or 0,'treino':bool(r['trained'])} for r in rows},'weights':[{'kg':r['weight'],'date':r['day'],'dayKey':r['day']} for r in rows if r['weight']],'legacyTrainingDays':{r['day']:True for r in rows if r['trained']}}
+        page = (Path(app.root_path) / 'student.html').read_text()
+        return page.replace('<!--BLACKFIT_BOOTSTRAP-->', '<script id="blackfit-data" type="application/json">'+str(htmlsafe_json_dumps(payload))+'</script>')
+
+    @app.get('/api/student-state')
+    @required('student')
+    def get_student_state():
+        return jsonify(state_for(g.user['id']))
+
+    @app.put('/api/student-state')
+    @required('student')
+    def put_student_state():
+        data = body()
+        state, pro, version = data.get('state'), data.get('pro'), data.get('version')
+        if not isinstance(state, dict) or not isinstance(pro,dict) or type(version) is not int or version<0:
+            return error('Estado de acompanhamento inválido.')
+        for key in ('calData','exChecks','loads','offDiet','photosByDay','photosByWeek','collapsed'):
+            if key in state and not isinstance(state[key],dict):
+                return error('Estado de acompanhamento inválido.')
+        for key in ('weights','photos'):
+            if key in state and not isinstance(state[key],list):
+                return error('Estado de acompanhamento inválido.')
+        for key in ('sugarDone','dailyGoals'):
+            if key in pro and not isinstance(pro[key],dict):
+                return error('Estado de metas inválido.')
+        # Do not accept HTML/javascript photo URLs from uploaded state.
+        def valid_photos(value):
+            if isinstance(value, dict):
+                for key,item in value.items():
+                    if key=='src' and (not isinstance(item,str) or not item.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,'))):
+                        return False
+                    if key=='src':
+                        try:
+                            base64.b64decode(item.split(',',1)[1],validate=True)
+                        except (ValueError,binascii.Error):
+                            return False
+                    if not valid_photos(item): return False
+            elif isinstance(value,list):
+                return all(valid_photos(item) for item in value)
+            return True
+        if not valid_photos(state):
+            return error('Formato de foto inválido.')
+        try:
+            cur = db().execute('INSERT INTO student_state(user_id,state,pro,version) VALUES (?,?,?,1) ON CONFLICT(user_id) DO UPDATE SET state=excluded.state,pro=excluded.pro,version=student_state.version+1 WHERE student_state.version=? RETURNING version', (g.user['id'],json.dumps(state),json.dumps(pro),version))
+            row=cur.fetchone()
+            if row is None or (version!=0 and row['version']==1):
+                db().rollback()
+                return error('Seu acompanhamento mudou em outra aba. Recarregue antes de continuar.',409)
+            db().commit()
+        except sqlite3.IntegrityError:
+            db().rollback()
+            return error('Não foi possível salvar.',409)
+        return jsonify(version=row['version'])
 
     @app.get('/icons/<filename>')
     def icons(filename):
@@ -252,7 +339,7 @@ def create_app(database=None, testing=False):
             return error('Informe nome, e-mail e senha inicial com pelo menos 12 caracteres.')
         try:
             cur = db().execute('INSERT INTO users(name,email,password,role,created_at) VALUES (?,?,?,?,?)', (name, email, generate_password_hash(password), 'student', now()))
-            db().execute('INSERT INTO plans(user_id,updated_at) VALUES (?,?)', (cur.lastrowid, now()))
+            db().execute('INSERT INTO plans(user_id,water_goal,updated_at) VALUES (?,3500,?)', (cur.lastrowid, now()))
             db().commit()
         except sqlite3.IntegrityError:
             db().rollback()
@@ -272,7 +359,21 @@ def create_app(database=None, testing=False):
             return error('Aluno não encontrado.', 404)
         plan = db().execute('SELECT * FROM plans WHERE user_id=?', (user_id,)).fetchone()
         progress = db().execute('SELECT day,weight,water,trained,diet_done,notes FROM progress WHERE user_id=? ORDER BY day DESC LIMIT 365', (user_id,)).fetchall()
-        return jsonify(user=public_user(row), plan=dict(plan) if plan else None, progress=[dict(r) for r in progress])
+        app_state=state_for(user_id)
+        records={r['day']:dict(r) for r in progress}
+        for day,entry in app_state['state'].get('calData',{}).items():
+            if not isinstance(entry,dict): continue
+            try:
+                date.fromisoformat(day)
+            except (ValueError,TypeError):
+                continue
+            records[day]={**records.get(day,{}),'day':day,'weight':entry.get('peso') or None,'water':entry.get('water',0),'trained':bool(entry.get('treino')),'diet_done':bool(records.get(day,{}).get('diet_done')),'notes':records.get(day,{}).get('notes','')}
+        sugar=app_state['pro'].get('sugarDone',{})
+        for day,entry in records.items(): entry['sugar_done']=bool(sugar.get(day))
+        for day,entry in records.items():
+            checks=app_state['state'].get('exChecks',{}).get('checks_'+day.replace('-','_'),{})
+            entry['exercises_done']=sum(sum(bool(v) for v in group.values()) for group in checks.values() if isinstance(group,dict)) if isinstance(checks,dict) else 0
+        return jsonify(user=public_user(row), plan=dict(plan) if plan else None, progress=[records[k] for k in sorted(records,reverse=True)[:365]], app_state=app_state)
 
     @app.put('/api/students/<int:user_id>/plan')
     @required('admin')
@@ -281,7 +382,7 @@ def create_app(database=None, testing=False):
             return error('Aluno não encontrado.', 404)
         data = body()
         diet, workout, notes = text(data, 'diet', 20000), text(data, 'workout', 20000), text(data, 'notes', 4000)
-        goal = data.get('water_goal', 2500)
+        goal = data.get('water_goal', 3500)
         if type(goal) is not int or not 0 <= goal <= 10000:
             return error('Meta de água inválida.')
         db().execute('INSERT INTO plans VALUES (?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET diet=excluded.diet,workout=excluded.workout,notes=excluded.notes,water_goal=excluded.water_goal,updated_at=excluded.updated_at', (user_id, diet, workout, notes, goal, now()))

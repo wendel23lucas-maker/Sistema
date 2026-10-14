@@ -1,6 +1,6 @@
 # BlackFit
 
-App web instalável com central administrativa e contas individuais de alunos. Mantém o estilo escuro e azul do HTML enviado, preservado em `original.html`. O administrador cadastra alunos, escreve dietas e treinos individuais, define metas de água, acompanha o histórico, pausa acessos e redefine senhas. Cada aluno troca a senha inicial, consulta seus planos e registra peso, água, treino, dieta e observações por dia. Os planos são texto livre nesta primeira versão.
+App web instalável com central administrativa e contas individuais de alunos. Mantém o estilo escuro e azul do HTML enviado, preservado em `original.html`. O administrador cadastra alunos, escreve dietas e treinos individuais, define metas de água, acompanha o histórico, pausa acessos e redefine senhas. Cada aluno troca a senha inicial e abre a interface do HTML original: checklist de exercícios, cargas por série, botões e copos de água, calorias/refeições, desafio de 120 dias sem açúcar, metas diárias, peso com gráfico, fotos e calendário. O estado e as metas são salvos no banco por conta, sem reutilizar dados locais de outro aluno. A central vê água, peso, exercícios concluídos e dias sem doce. Os planos são editados em texto; no treino, use títulos “Treino A”, “Treino B” e linhas como `Supino | 3 | 12 | 60s | Peito`; para dieta, uma refeição por linha como `Café da manhã | 350`. Sem personalização, o aluno vê o modelo original enviado. A distribuição dos treinos personalizados alterna os grupos de segunda a sábado, com domingo de cardio/descanso; instruções adicionais podem ser colocadas nas orientações.
 
 ## Publicar na Vercel
 
@@ -42,3 +42,11 @@ Com `DATABASE_URL` presente, o backend usa PostgreSQL. Na Vercel, a ausência de
 Para executar a mesma suíte contra um PostgreSQL **descartável de teste**, defina `TEST_POSTGRES_URL` na sessão antes do comando. A suíte recria o schema `public`; nunca use uma URL de produção. Também foi validado o fluxo visual com Chromium em larguras desktop e celular. As contas dos testes são temporárias e não são criadas no banco de desenvolvimento.
 
 O `Dockerfile` é uma alternativa opcional de hospedagem fora da Vercel. Para SQLite em container, monte um volume permanente em `/data`; para PostgreSQL, forneça `DATABASE_URL`. Use HTTPS e backups em produção.
+
+## Interface original e sincronização
+
+`student.html`, `student-core.js` e `student-pro.js` preservam a interface e as rotinas do HTML original. `student-bridge.js` liga o estado à API autenticada. Chart.js 4.4.1 está incluído em `vendor/`, com licença, e o download foi verificado contra a integridade do registro npm. Nenhum script Firebase/CDN é necessário.
+
+O aluno entra pela rota `/aluno`. Dados anteriores de peso/água são importados quando ainda não existe um estado completo. As alterações são enviadas à nuvem em sequência, com controle de versão para detectar conflitos entre abas. O indicador mostra confirmação, falha ou alterações pendentes. É preciso manter a página aberta até confirmar o salvamento; alterações offline ficam apenas na memória desta sessão. Fotos comprimidas fazem parte do estado e o histórico completo tem limite de 4 MB por salvamento. O logout e os avisos de saída sinalizam alterações ainda não salvas.
+
+A política de segurança da tela do aluno permite os estilos e manipuladores inline do HTML original; as páginas de login/admin mantêm a política mais restrita. A API continua exigindo autenticação, papel, CSRF e isolamento por conta. Fotos aceitam apenas imagens base64, e os dados de bootstrap são escapados para impedir a quebra do bloco JSON.
