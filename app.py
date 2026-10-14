@@ -15,6 +15,7 @@ from flask import Flask, request, jsonify, g, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import Postgres
 from markupsafe import escape
+from plan_settings import DEFAULT_SETTINGS, validate_settings
 
 
 def create_app(database=None, testing=False):
@@ -70,6 +71,8 @@ def create_app(database=None, testing=False):
         CREATE TABLE IF NOT EXISTS student_state (
             user_id INTEGER PRIMARY KEY REFERENCES users(id), state TEXT NOT NULL,
             pro TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1);
+        CREATE TABLE IF NOT EXISTS plan_settings (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id), settings TEXT NOT NULL);
         ''')
         db().commit()
 
@@ -158,7 +161,7 @@ def create_app(database=None, testing=False):
 
     @app.get('/<filename>')
     def assets(filename):
-        if filename not in ('app.js', 'style.css', 'manifest.webmanifest', 'sw.js', 'icon.svg', 'student-bridge.js', 'student-core.js', 'student-pro.js'):
+        if filename not in ('app.js', 'style.css', 'manifest.webmanifest', 'sw.js', 'icon.svg', 'student-bridge.js', 'student-core.js', 'student-pro.js', 'admin-settings.js'):
             return error('Não encontrado.', 404)
         return send_from_directory(app.root_path, filename)
 
@@ -170,6 +173,10 @@ def create_app(database=None, testing=False):
         row = db().execute('SELECT state,pro,version FROM student_state WHERE user_id=?', (user_id,)).fetchone()
         return {'state':json.loads(row['state']), 'pro':json.loads(row['pro']), 'version':row['version']} if row else {'state':{},'pro':{},'version':0}
 
+    def settings_for(user_id):
+        row=db().execute('SELECT settings FROM plan_settings WHERE user_id=?',(user_id,)).fetchone()
+        return {**DEFAULT_SETTINGS,**json.loads(row['settings'])} if row else dict(DEFAULT_SETTINGS)
+
     @app.get('/aluno')
     def student_app():
         from flask import redirect
@@ -179,12 +186,14 @@ def create_app(database=None, testing=False):
         payload = state_for(g.user['id'])
         plan = db().execute('SELECT * FROM plans WHERE user_id=?', (g.user['id'],)).fetchone()
         payload.update(user=public_user(g.user),csrf=g.csrf,plan=dict(plan) if plan else {})
+        payload['settings']=settings_for(g.user['id'])
         if not payload['state']:
             rows = db().execute('SELECT * FROM progress WHERE user_id=? ORDER BY day DESC', (g.user['id'],)).fetchall()
             payload['state'] = {'calData':{r['day']:{'water':r['water'],'peso':r['weight'] or 0,'treino':bool(r['trained'])} for r in rows},'weights':[{'kg':r['weight'],'date':r['day'],'dayKey':r['day']} for r in rows if r['weight']],'legacyTrainingDays':{r['day']:True for r in rows if r['trained']}}
         page = (Path(app.root_path) / 'student.html').read_text()
         display_name=' '.join(g.user['name'].split()[:2])
         page=page.replace('<!--BLACKFIT_NAME-->',str(escape(display_name)))
+        page=page.replace('<!--BLACKFIT_PROGRAM-->',str(escape((payload['settings']['program_title'] or 'Meu programa')+' · '+str(payload['settings']['program_weeks'])+' semanas')))
         return page.replace('<!--BLACKFIT_BOOTSTRAP-->', '<script id="blackfit-data" type="application/json">'+str(htmlsafe_json_dumps(payload))+'</script>')
 
     @app.get('/api/student-state')
@@ -376,7 +385,7 @@ def create_app(database=None, testing=False):
         for day,entry in records.items():
             checks=app_state['state'].get('exChecks',{}).get('checks_'+day.replace('-','_'),{})
             entry['exercises_done']=sum(sum(bool(v) for v in group.values()) for group in checks.values() if isinstance(group,dict)) if isinstance(checks,dict) else 0
-        return jsonify(user=public_user(row), plan=dict(plan) if plan else None, progress=[records[k] for k in sorted(records,reverse=True)[:365]], app_state=app_state)
+        return jsonify(user=public_user(row), plan=dict(plan) if plan else None, progress=[records[k] for k in sorted(records,reverse=True)[:365]], app_state=app_state,settings=settings_for(user_id))
 
     @app.put('/api/students/<int:user_id>/plan')
     @required('admin')
@@ -388,7 +397,10 @@ def create_app(database=None, testing=False):
         goal = data.get('water_goal', 3500)
         if type(goal) is not int or not 0 <= goal <= 10000:
             return error('Meta de água inválida.')
+        settings=validate_settings(data['settings']) if 'settings' in data else None
         db().execute('INSERT INTO plans VALUES (?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET diet=excluded.diet,workout=excluded.workout,notes=excluded.notes,water_goal=excluded.water_goal,updated_at=excluded.updated_at', (user_id, diet, workout, notes, goal, now()))
+        if settings is not None:
+            db().execute('INSERT INTO plan_settings VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET settings=excluded.settings',(user_id,json.dumps(settings)))
         db().commit()
         return jsonify(ok=True)
 

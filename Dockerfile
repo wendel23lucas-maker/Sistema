@@ -2,7 +2,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py database.py app.js style.css index.html manifest.webmanifest sw.js ./
+COPY app.py database.py plan_settings.py admin-settings.js app.js style.css index.html manifest.webmanifest sw.js ./
 COPY student.html student-bridge.js student-core.js student-pro.js ./
 COPY vendor ./vendor
 COPY icons ./icons

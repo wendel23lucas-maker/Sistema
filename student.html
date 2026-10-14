@@ -469,7 +469,7 @@ body{
 <title>BlackFit • Meu acompanhamento</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-title" content="BlackFit"></head>
 <body><!--BLACKFIT_BOOTSTRAP--><script src="/vendor/chart.umd.js"></script><script src="/student-bridge.js"></script>
 <div id="blackfit-account" style="position:fixed;top:0;left:0;right:0;z-index:10001;background:#111118;border-bottom:1px solid #292932;padding:8px 12px;display:flex;gap:10px;align-items:center;font-size:11px"><span id="blackfit-name" style="flex:1"></span><button id="blackfit-sync" style="background:none;border:0;color:#9696ae;font:inherit;cursor:pointer">Sincronizado</button><a href="/?conta=1" style="color:#3b82f6">Minha conta</a><button id="blackfit-logout" style="background:#18181f;color:white;border:1px solid #292932;border-radius:6px;padding:5px 9px">Sair</button></div>
-<style>.app{padding-top:44px!important}.ex-check-item{transform-origin:left center!important}.intro-overlay{top:44px!important}</style>
+<style>[hidden]{display:none!important}.app{padding-top:44px!important}.ex-check-item{transform-origin:left center!important}.intro-overlay{top:44px!important}</style>
 
 <!-- ═══ SPLASH SCREEN ═══ -->
 
@@ -480,7 +480,7 @@ body{
     </div>
   </div>
   <div class="splash-title">BLACK<span>FIT</span></div>
-  <div class="splash-sub" id="splash-user-name"><!--BLACKFIT_NAME--> · Seu programa 12 semanas</div>
+  <div class="splash-sub" id="splash-user-name"><!--BLACKFIT_NAME--> · <!--BLACKFIT_PROGRAM--></div>
   <div class="splash-bar-wrap"><div class="splash-bar" id="splash-bar"></div></div>
 </div>
 
@@ -512,7 +512,7 @@ body{
 
   <div class="top-bar">
     <div class="top-logo">BLACK<span>FIT</span></div>
-    <div class="top-week" id="top-week-label" onclick="showPage('treino')">Sem 1-2 · Adaptação</div>
+    <div class="top-week" id="top-week-label" onclick="showPage('treino')">Meu programa</div>
   </div>
 
   <!-- SCROLL -->
@@ -525,8 +525,8 @@ body{
   <div class="today-hero">
     <div class="hero-date" id="hero-date"></div>
     <div class="hero-name" id="hero-name">Treino A — Peitoral</div>
-    <div class="hero-sub" id="hero-sub">Semana 1 · Bloco de Adaptação</div>
-    <div class="hero-badge" id="hero-cardio">🏃 Esteira 30 min · 110-130 BPM</div>
+    <div class="hero-sub" id="hero-sub">Programa individual</div>
+    <div class="hero-badge" id="hero-cardio"></div>
   </div>
 
   <div class="card">
@@ -612,7 +612,7 @@ body{
 <div class="page" id="page-treino">
 
   <div class="card">
-    <div class="card-title">Fase do programa</div>
+    <div class="card-title">Programa individual</div>
     <div class="week-row" id="week-sel"></div>
   </div>
 
@@ -627,18 +627,7 @@ body{
     <div id="cardio-txt" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
   </div>
 
-  <div class="card">
-    <div class="card-title">Métodos de treinamento</div>
-    <div class="method-list">
-      <b>Pirâmide Crescente</b> — Repetições diminuem, carga aumenta por série. Ex: 15/15/10/10/8/8.<br>
-      <b>Drop-Set</b> — Reduz 30% da carga na última série e vai até a falha muscular.<br>
-      <b>Pico de Contração</b> — Segura 2 segundos no pico da contração.<br>
-      <b>Máximo de Amplitude</b> — Prioriza amplitude máxima na fase excêntrica.<br>
-      <b>Convencional</b> — 1s concêntrica, 2s excêntrica, de forma controlada.<br>
-      <b>EMOM</b> — Inicie a tarefa no começo de cada minuto; o tempo restante é descanso.<br>
-      <b>AMRAP</b> — Faça o máximo de voltas possível no tempo proposto, mantendo boa técnica.
-    </div>
-  </div>
+  <div class="card" id="workout-guidance-card"><div class="card-title">Orientações do treino</div><div id="workout-guidance" style="white-space:pre-wrap"></div></div>
 
 </div>
 
@@ -649,19 +638,16 @@ body{
     <div class="card-title">Calorias do dia</div>
     <div class="macro-g">
       <div class="macro-c"><div class="macro-v" id="d-cons" style="color:var(--accent);">0</div><div class="macro-l">consumidas</div></div>
-      <div class="macro-c"><div class="macro-v" style="color:var(--green);">1500</div><div class="macro-l">meta</div></div>
-      <div class="macro-c"><div class="macro-v" id="d-rest" style="color:var(--yellow);">1500</div><div class="macro-l">restantes</div></div>
+      <div class="macro-c"><div class="macro-v" id="d-goal" style="color:var(--green);">—</div><div class="macro-l">meta</div></div>
+      <div class="macro-c"><div class="macro-v" id="d-rest" style="color:var(--yellow);">—</div><div class="macro-l">restantes</div></div>
     </div>
     <div class="cal-bar-wrap"><div class="cal-bar" id="cal-bar" style="width:0%;"></div></div>
   </div>
 
-  <div class="alert alert-info">
-    <span>🥩</span>
-    <span><b>Plano 1.500 kcal:</b> 3 refeições por dia, com proteína alta. Nos dias de Jiu-Jitsu, priorize a refeição com arroz e feijão mais próxima do treino.</span>
-  </div>
+  <div class="alert alert-info" id="diet-guidance-card"><span>🥗</span><span id="diet-guidance" style="white-space:pre-wrap"></span></div><div class="card" id="macro-targets"></div>
 
   <div class="card">
-    <div class="card-title">Refeições — 1500 kcal · 3 refeições</div>
+    <div class="card-title"><span id="meals-title">Refeições</span></div>
     <div id="meals"></div>
   </div>
 
@@ -690,9 +676,9 @@ body{
 <!-- PESO -->
 <div class="page" id="page-peso">
   <div class="card">
-    <div class="card-title">Registrar peso</div>
+    <div class="card-title">Registrar peso</div><p id="target-weight" style="font-size:12px;color:var(--muted)"></p>
     <div style="display:flex;gap:8px;margin-bottom:4px;">
-      <input class="inp" id="w-inp" type="number" step="0.1" placeholder="Ex: 85.5 kg" style="flex:1;"/>
+      <input class="inp" id="w-inp" type="number" step="0.1" placeholder="Peso em kg" style="flex:1;"/>
       <button class="btn btn-primary" onclick="addWeight()">Salvar</button>
     </div>
   </div>

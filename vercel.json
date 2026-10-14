@@ -1,5 +1,32 @@
 {
   "version": 2,
-  "builds": [{"src":"api/index.py","use":"@vercel/python","config":{"includeFiles":["index.html","app.js","style.css","student.html","student-*.js","vendor/**","manifest.webmanifest","sw.js","icons/**","app.py","database.py"]}}],
-  "routes": [{"src":"/(.*)","dest":"/api/index.py"}]
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "index.html",
+          "app.js",
+          "style.css",
+          "student.html",
+          "student-*.js",
+          "vendor/**",
+          "manifest.webmanifest",
+          "sw.js",
+          "icons/**",
+          "app.py",
+          "database.py",
+          "plan_settings.py",
+          "admin-settings.js"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ]
 }

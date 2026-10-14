@@ -182,6 +182,28 @@ class AppTests(unittest.TestCase):
                 self.assertNotIn(unexpected,welcome)
                 self.assertNotIn('WEN<span>DEL',response.text)
 
+    def test_admin_edits_each_students_settings_without_template_inheritance(self):
+        one=self.student('one@example.test');two=self.student('two@example.test')
+        settings={'calorie_goal':2400,'protein_goal':180,'carbs_goal':220,'fat_goal':70,'diet_guidance':'Orientação individual da dieta','workout_guidance':'Executar com controle','activities':['Natação — terça e quinta'],'daily_goals':['Alongamento'],'cardio_minutes':25,'cardio_text':'Bicicleta em ritmo leve','sugar_days':30,'sugar_enabled':False,'program_title':'Programa Douglas','program_weeks':8,'program_start':'2026-10-01','target_weight':78,'schedule':['CARDIO','A','B','CARDIO','A','B','CARDIO']}
+        payload={'diet':'Café | 350 | Aveia 40g; Banana 1 unidade','workout':'Treino A\nSupino | 3 | 12 | 60s | Peito','water_goal':3000,'settings':settings}
+        response=self.mutate(self.admin,self.admin_csrf,f'/api/students/{one}/plan',payload)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(self.admin.get(f'/api/students/{one}').json['settings'],settings)
+        self.assertEqual(self.admin.get(f'/api/students/{two}').json['settings']['activities'],[])
+        self.assertEqual(self.admin.get(f'/api/students/{two}').json['settings']['calorie_goal'],0)
+        client,csrf=self.activate_student('one@example.test')
+        with client.get('/aluno') as response:
+            boot=json.loads(re.search(r'<script id="blackfit-data" type="application/json">(.*?)</script>',response.text).group(1))
+            self.assertEqual(boot['settings']['calorie_goal'],2400)
+            self.assertNotIn('Jiu-Jitsu',response.text)
+            self.assertNotIn('Plano 1.500 kcal',response.text)
+        self.assertEqual(self.mutate(client,csrf,f'/api/students/{one}/plan',payload).status_code,403)
+        invalid={**payload,'diet':'Não deve substituir o plano','settings':{**settings,'sugar_days':0}}
+        self.assertEqual(self.mutate(self.admin,self.admin_csrf,f'/api/students/{one}/plan',invalid).status_code,400)
+        self.assertEqual(self.admin.get(f'/api/students/{one}').json['plan']['diet'],payload['diet'])
+        self.mutate(self.admin,self.admin_csrf,f'/api/students/{one}/plan',{'diet':'Novo texto','water_goal':3000})
+        self.assertEqual(self.admin.get(f'/api/students/{one}').json['settings']['calorie_goal'],2400)
+
     def test_bootstrap_only_once_and_secure_cookie(self):
         with self.connection() as db:
             db.execute('DELETE FROM sessions')

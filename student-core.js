@@ -1,97 +1,11 @@
 
 // ─── DATA ───────────────────────────────────────────────
-const TREINOS = {
-  A:{name:'Treino A',sub:'Peitoral + Abdômen',exercises:[
-    {muscle:'OMBRO',name:'Manguito Rotador Interno na Polia',series:2,reps:'15',rest:'20s',method:'AQUECIMENTO'},
-    {muscle:'PEITORAL',name:'Supino Inclinado com Halter',series:6,reps:'15/15/10/10/8/8',rest:'2-3 min',method:'PIRÂMIDE CRESCENTE'},
-    {muscle:'PEITORAL',name:'Supino Reto com Halter',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'PEITORAL',name:'Crucifixo Inclinado com Halteres',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'PEITORAL',name:'Voador Peitoral Aberto',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'OMBRO',name:'Elevação Lateral no Cross',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'ABDOMINAL',name:'Abdominal Supra Solo',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'ABDOMINAL',name:'Abdominal Infra na Paralela',series:3,reps:'12-15',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'ABDOMINAL',name:'Prancha Solo',series:3,reps:'30s',rest:'1-2 min',method:'CONVENCIONAL'},
-  ]},
-  B:{name:'Treino B',sub:'Costas + Bíceps + Trapézio',exercises:[
-    {muscle:'OMBRO',name:'Manguito Rotador Externo na Polia',series:2,reps:'15',rest:'10s',method:'AQUECIMENTO'},
-    {muscle:'COSTAS',name:'Remada Curvada com Barra Pronada',series:6,reps:'15/15/10/10/8/8',rest:'2-3 min',method:'PIRÂMIDE CRESCENTE'},
-    {muscle:'COSTAS',name:'Remada Serrote',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'COSTAS',name:'Pulley Frente Pegada Pronada',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'TRAPÉZIO',name:'Remada Alta na Polia',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'OMBROS',name:'Encolhimento com Halter',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'BÍCEPS',name:'Rosca Direta com Halter',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'BÍCEPS',name:'Rosca com Corda Polia Baixa',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-  ]},
-  C:{name:'Treino C',sub:'Ombros + Tríceps',exercises:[
-    {muscle:'OMBRO',name:'Manguito Rotador Interno na Polia',series:2,reps:'15',rest:'10s',method:'AQUECIMENTO'},
-    {muscle:'OMBRO',name:'Elevação Lateral',series:6,reps:'15/12/10/10/8/8',rest:'2-3 min',method:'PIRÂMIDE CRESCENTE'},
-    {muscle:'OMBRO',name:'Desenvolvimento com Halter',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'OMBRO',name:'Elevação Frontal com Halter Neutro',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'OMBRO',name:'Voador Inverso Pegada Pronada',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'TRÍCEPS',name:'Tríceps Corda',series:3,reps:'10-12',rest:'1-2 min',method:'CONVENCIONAL'},
-    {muscle:'TRÍCEPS',name:'Tríceps Francês com Halter',series:3,reps:'10-12',rest:'1-3 min',method:'CONVENCIONAL'},
-    {muscle:'TRÍCEPS',name:'Tríceps Testa com Halter',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-  ]},
-  D:{name:'Treino D',sub:'Membros Inferiores',exercises:[
-    {muscle:'ABDOMINAL',name:'Abdominal Remador',series:3,reps:'15',rest:'1 min',method:'AQUECIMENTO'},
-    {muscle:'MI',name:'Agachamento Livre com Barra',series:6,reps:'15/15/10/10/8/8',rest:'2-3 min',method:'PIRÂMIDE CRESCENTE'},
-    {muscle:'MI',name:'Levantamento Terra',series:3,reps:'10-12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'QUADRÍCEPS',name:'Banco Extensor',series:3,reps:'12',rest:'2-3 min',method:'CONVENCIONAL'},
-    {muscle:'POSTERIOR',name:'Banco Flexor',series:3,reps:'10-12',rest:'1-3 min',method:'CONVENCIONAL'},
-    {muscle:'ADUTORES',name:'Banco Adutor',series:3,reps:'10-12',rest:'1-3 min',method:'CONVENCIONAL'},
-    {muscle:'GLÚTEO',name:'Elevação Pélvica com Barra',series:3,reps:'10-12',rest:'1-3 min',method:'CONVENCIONAL'},
-    {muscle:'PANTURRILHA',name:'Panturrilha no Leg 45°',series:3,reps:'10-12',rest:'1 min',method:'MÁXIMO DE AMPLITUDE'},
-    {muscle:'PANTURRILHA',name:'Panturrilha Sentado',series:3,reps:'10-12',rest:'1 min',method:'PICO DE CONTRAÇÃO'},
-  ]},
-  FUNC:{name:'HIIT em Casa',sub:'Estilo CrossFit · Barra fixa + galão 5 kg',exercises:[
-    {muscle:'AQUECIMENTO',name:'Polichinelo + corrida parada',series:1,reps:'4 min',rest:'—',method:'AQUECIMENTO',noLoad:true},
-    {muscle:'FULL BODY',name:'Burpee',series:4,reps:'8-10',rest:'tempo restante',method:'EMOM · MINUTO 1',noLoad:true},
-    {muscle:'PERNAS / CORE',name:'Agachamento segurando galão 5 kg',series:4,reps:'15',rest:'tempo restante',method:'EMOM · MINUTO 2',noLoad:true},
-    {muscle:'OMBROS / PERNAS',name:'Thruster com galão 5 kg',series:4,reps:'10-12',rest:'tempo restante',method:'EMOM · MINUTO 3',noLoad:true},
-    {muscle:'COSTAS / PEGADA',name:'Barra fixa',series:4,reps:'3-6',rest:'mínimo',method:'AMRAP · 12 MIN',noLoad:true},
-    {muscle:'PEITO / TRÍCEPS',name:'Flexão de braço',series:4,reps:'10-15',rest:'mínimo',method:'AMRAP · 12 MIN',noLoad:true},
-    {muscle:'PERNAS',name:'Avanço alternado com galão 5 kg',series:4,reps:'12 (6/6)',rest:'mínimo',method:'AMRAP · 12 MIN',noLoad:true},
-    {muscle:'CORE / CARDIO',name:'Mountain climber',series:4,reps:'30s',rest:'mínimo',method:'AMRAP · 12 MIN',noLoad:true},
-    {muscle:'CONDICIONAMENTO',name:'Corrida com joelho alto',series:6,reps:'30s',rest:'30s',method:'FINISHER · 6 MIN',noLoad:true},
-  ]},
-};
+const TREINOS={};
+const SCHED={'1-2':Array(7).fill('CARDIO'),'3-6':Array(7).fill('CARDIO'),'7-9':Array(7).fill('CARDIO'),'10-12':Array(7).fill('CARDIO')};
+const CARDIO={'1-2':'','3-6':'','7-9':'','10-12':''};
+const MEALS=[];
+window.blackfitApplyPlans(TREINOS,MEALS,SCHED,CARDIO);
 
-const SCHED = {
-  '1-2': ['A','B','CARDIO','C','D','CARDIO','CARDIO'],
-  '3-6': ['A','B','CARDIO','C','D','CARDIO','CARDIO'],
-  '7-9': ['A','B','CARDIO','C','D','CARDIO','A'],
-  '10-12':['C','D','CARDIO','A','B','CARDIO','C'],
-};
-
-const CARDIO = {
-  '1-2':  'Sem 1-2: 30 min em dias de treino · 40 min em dias de descanso\nFrequência: 110-130 BPM · Intensidade moderada\nSugestão: Elíptico (sem impacto nos joelhos)',
-  '3-6':  'Sem 3-6: 40 min em dias de treino · 60 min em dias de descanso\nFrequência: 110-130 BPM · Intensidade moderada',
-  '7-9':  'Sem 7-9: 45 min em dias de treino · 60 min em dias de descanso\nFrequência: 110-130 BPM · Intensidade moderada',
-  '10-12':'Sem 10-12: 60 minutos TODOS os dias\nFrequência: 110-130 BPM · Intensidade moderada',
-};
-
-const MEALS = [
-  {name:'🥤 Refeição 1 — Whey',kcal:350,items:[
-    {food:'Whey Protein',qty:'40g'},
-    {food:'Iogurte grego zero / proteico',qty:'170g'},
-    {food:'Banana',qty:'1 unid.'},
-  ]},
-  {name:'🍽️ Refeição 2 — Almoço',kcal:670,items:[
-    {food:'Peito de frango grelhado',qty:'200g'},
-    {food:'Arroz cozido',qty:'120g'},
-    {food:'Feijão',qty:'100g'},
-    {food:'Legumes / salada',qty:'200g'},
-    {food:'Azeite',qty:'5g'},
-  ]},
-  {name:'🌙 Refeição 3 — Jantar',kcal:480,items:[
-    {food:'Patinho moído magro',qty:'150g'},
-    {food:'Batata cozida / assada',qty:'150g'},
-    {food:'Legumes / salada',qty:'150-200g'},
-    {food:'Azeite',qty:'5g'},
-  ]},
-];
-
-window.blackfitApplyPlans(TREINOS,MEALS,SCHED);
 // ─── STATE ──────────────────────────────────────────────
 const DEF = {water:0,calories:0,week:'1-2',treino:'A',weights:[],photos:[],photosByDay:{},photosByWeek:{},photoProgramStart:null,collapsed:{},calData:{},exChecks:{},offDiet:{},loads:{},lastActiveDay:null,lastViewedDay:null};
 let S = DEF;
@@ -353,7 +267,7 @@ function showPage(id){
 function addWater(ml){S.water=Math.min((Number(S.water)||0)+ml,window.BLACKFIT_WATER_GOAL);save();renderWater();renderCalPage();}
 function resetWater(){S.water=0;save();renderWater();renderCalPage();}
 function renderWater(){
-  const pct=S.water/window.BLACKFIT_WATER_GOAL;
+  const pct=window.BLACKFIT_WATER_GOAL>0?S.water/window.BLACKFIT_WATER_GOAL:0;
   const n=14,filled=Math.round(pct*n);
   const tr=document.getElementById('water-track');
   if(!tr)return;
@@ -379,24 +293,24 @@ function renderWater(){
 // ─── CALORIES ───────────────────────────────────────────
 function addCal(){
   const v=parseFloat(document.getElementById('cal-inp').value);
-  if(!v||v<=0)return;
-  S.calories=Math.min((Number(S.calories)||0)+v,3500);
+  if(!Number.isFinite(v)||v<=0)return;
+  S.calories=Math.max(0,(Number(S.calories)||0)+v);
   document.getElementById('cal-inp').value='';
   save();renderCal();renderCalPage();
 }
 function resetCal(){S.calories=0;const key=todayISOKey();if(S.offDiet&&S.offDiet[key])S.offDiet[key]=[];save();renderCal();renderFreeMeals();renderCalPage();}
 function renderCal(){
-  const pct=Math.min(S.calories/1500,1);
+  const pct=window.BLACKFIT_SETTINGS.calorie_goal?Math.min(S.calories/window.BLACKFIT_SETTINGS.calorie_goal,1):0;
   const el=id=>document.getElementById(id);
   if(el('cal-bar'))el('cal-bar').style.width=(pct*100)+'%';
   if(el('d-cons'))el('d-cons').textContent=Math.round(S.calories);
-  if(el('d-rest'))el('d-rest').textContent=Math.max(0,Math.round(1500-S.calories));
+  if(el('d-rest'))el('d-rest').textContent=window.BLACKFIT_SETTINGS.calorie_goal?Math.max(0,Math.round(window.BLACKFIT_SETTINGS.calorie_goal-S.calories)):'—';
   if(el('m-kcal'))el('m-kcal').textContent=Math.round(S.calories);
 }
 function renderQuick(){
   const w=document.getElementById('quick-add');
   if(!w)return;
-  w.innerHTML=MEALS.map(m=>`<button class="quick-btn" onclick="S.calories=Math.min((Number(S.calories)||0)+${m.kcal},3500);save();renderCal();renderCalPage();">${m.name.slice(0,10)} +${m.kcal}</button>`).join('');
+  w.innerHTML=MEALS.map(m=>`<button class="quick-btn" onclick="S.calories=Math.max(0,(Number(S.calories)||0)+${m.kcal});save();renderCal();renderCalPage();">${m.name.slice(0,10)} +${m.kcal}</button>`).join('');
 }
 
 
@@ -411,12 +325,12 @@ function addFreeMeal(){
   const name=nameEl.value.trim();
   const kcal=Math.round(parseFloat(kcalEl.value));
   if(!name){alert('Digite o nome do alimento.');nameEl.focus();return;}
-  if(!kcal||kcal<=0){alert('Digite as calorias aproximadas.');kcalEl.focus();return;}
+  if(!Number.isFinite(kcal)||kcal<=0){alert('Digite as calorias aproximadas.');kcalEl.focus();return;}
   const key=todayISOKey();
   if(!S.offDiet)S.offDiet={};
   if(!S.offDiet[key])S.offDiet[key]=[];
   S.offDiet[key].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2),name,kcal,time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),date:key});
-  S.calories=Math.min((Number(S.calories)||0)+kcal,3500);
+  S.calories=Math.max(0,(Number(S.calories)||0)+kcal);
   nameEl.value='';kcalEl.value='';
   save();renderCal();renderFreeMeals();renderCalPage();
 }
@@ -458,7 +372,7 @@ function escapeText(v){
 // ─── WEIGHT ─────────────────────────────────────────────
 function addWeight(){
   const v=parseFloat(document.getElementById('w-inp').value);
-  if(!v||v<30||v>250)return;
+  if(!Number.isFinite(v)||v<1||v>500)return;
   const dt=bfDateFromKey(currentDayKey());
   const dateBR=dt.toLocaleDateString('pt-BR');
   S.weights=(S.weights||[]).filter(w=>!(w.iso===currentDayKey() || dateBRToISO(w.date)===currentDayKey()));
@@ -516,21 +430,27 @@ function renderToday(){
   if(dateEl)dateEl.textContent=(isViewingToday()?'Hoje · ':'')+d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 
   const item=SCHED[S.week][dow];
-  const mins={' 1-2':30,'3-6':40,'7-9':45,'10-12':60}[S.week]||30;
-  const cm=S.week==='1-2'?30:S.week==='3-6'?40:S.week==='7-9'?45:60;
+  const cm=window.BLACKFIT_SETTINGS.cardio_minutes;
 
   const hn=document.getElementById('hero-name');
   const hc=document.getElementById('hero-cardio');
   const hex=document.getElementById('hoje-exercises');
 
+  if(!window.BLACKFIT_HAS_WORKOUT&&!window.BLACKFIT_SETTINGS.cardio_minutes&&!window.BLACKFIT_SETTINGS.cardio_text){
+    if(hn)hn.textContent='Aguardando seu plano de treino';
+    if(hc)hc.textContent='Seu responsável prepara seu plano pela central';
+    if(hex)hex.textContent='Nenhum treino foi cadastrado para você ainda.';
+    return;
+  }
+
   if(item==='CARDIO'){
-    if(hn)hn.textContent='Descanso + Cardio';
-    if(hc)hc.textContent='🏃 Cardio '+cm+' min · 110-130 BPM';
-    if(hex)hex.innerHTML='<div style="color:var(--muted);font-size:13px;line-height:1.7;padding:4px 0;">Foque na recuperação muscular, mobilidade e hidratação. Mantenha as 3 refeições previstas no plano.</div>';
+    if(hn)hn.textContent=window.BLACKFIT_SETTINGS.cardio_minutes?'Descanso + Cardio':'Descanso';
+    if(hc)hc.textContent=window.blackfitCardioLabel();
+    if(hex)hex.innerHTML='<div style="color:var(--muted);font-size:13px;line-height:1.7;padding:4px 0;">Consulte as orientações da sua central para este dia.</div>';
   } else if(TREINOS[item]){
     const t=TREINOS[item];
     if(hn)hn.textContent=t.name+' — '+t.sub;
-    if(hc)hc.textContent='🏃 Cardio '+cm+' min pós-treino';
+    if(hc)hc.textContent=window.blackfitCardioLabel();
     const ck2=getTodayCheckKey();
     const dc=(S.exChecks&&S.exChecks[ck2]&&S.exChecks[ck2][item])||{};
     const doneC=Object.values(dc).filter(Boolean).length;
@@ -573,14 +493,12 @@ function renderDayRow(){
 function renderTreinoPage(){
   const ws=document.getElementById('week-sel');
   if(ws){
-    const weeks=['1-2','3-6','7-9','10-12'];
-    const labels=['Sem 1-2 · Adaptação','Sem 3-6 · Progressão','Sem 7-9 · Intensidade','Sem 10-12 · Pico'];
-    ws.innerHTML=weeks.map((w,i)=>`<div class="wpill${S.week===w?' active':''}" onclick="S.week='${w}';save();renderTreinoPage();renderToday();renderDayRow();document.getElementById('top-week-label').textContent='${labels[i]}';">${labels[i]}</div>`).join('');
+    ws.textContent=window.blackfitProgramLabel();
   }
   const tabs=document.getElementById('t-tabs');
   if(tabs)tabs.innerHTML=Object.keys(TREINOS).map(k=>`<div class="t-tab${S.treino===k?' active':''}" onclick="S.treino='${k}';save();renderExercises();">${k}</div>`).join('');
   const ci=document.getElementById('cardio-txt');
-  if(ci)ci.innerHTML=CARDIO[S.week].split('\n').map(l=>`<div>${l}</div>`).join('');
+  if(ci)ci.textContent=window.BLACKFIT_SETTINGS.cardio_text||'Cardio ainda não definido pela central.';
   renderExercises();
 }
 
@@ -1148,7 +1066,7 @@ function showWelcome(){
     <div class="wstat-divider"></div>
     <div class="wstat"><div class="wstat-val">${totalDays}</div><div class="wstat-label">Dias logs</div></div>
     <div class="wstat-divider"></div>
-    <div class="wstat"><div class="wstat-val">${S.week||'1-2'}</div><div class="wstat-label">Semana</div></div>`;
+    <div class="wstat"><div class="wstat-val">${window.BLACKFIT_SETTINGS.program_weeks+' sem.'}</div><div class="wstat-label">Semana</div></div>`;
 
   // frase aleatória
   const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
@@ -1212,9 +1130,8 @@ renderTreinoPage();renderMeals();renderQuick();renderFreeMeals();renderPhotos();
 startDailyRolloverWatcher();
 
 // Top label
-const wlabels={'1-2':'Sem 1-2 · Adaptação','3-6':'Sem 3-6 · Progressão','7-9':'Sem 7-9 · Intensidade','10-12':'Sem 10-12 · Pico'};
 const tl=document.getElementById('top-week-label');
-if(tl)tl.textContent=wlabels[S.week];
+if(tl)tl.textContent=window.blackfitProgramLabel();
 
 // Sincronização Firebase: mantém window.blackfitStorage como backup e puxa a nuvem quando configurado.
 startFirebaseSync();

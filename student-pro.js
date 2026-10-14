@@ -54,27 +54,28 @@
     if(P.notifications){showRealNotification('BLACK FIT ativado ⚡','Notificações reais liberadas para água, treino e metas.');}
     else{toast('Permissão não ativada','Libere as notificações do navegador para receber os alertas reais.');}
   };
-  function goalState(){const k=todayKey();if(!P.dailyGoals[k])P.dailyGoals[k]={panturrilha:false,abdomen:false,antebraco:false};return P.dailyGoals[k];}
+  function goalState(){const k=todayKey();if(!P.dailyGoals[k])P.dailyGoals[k]={};return P.dailyGoals[k];}
   window.toggleProGoal=function(g){const st=goalState();st[g]=!st[g];savePro();renderPro();showRealNotification('Meta atualizada',st[g]?'Boa! Meta concluída hoje.':'Meta reaberta para hoje.');};
   window.markSugarDay=function(done){
     const k=todayKey();
-    if(done){P.sugarDone[k]=true;showRealNotification('Sem açúcar hoje ✅','Mais um dia contabilizado no desafio de 120 dias.');}
-    else{if(confirm('Reiniciar o desafio de 120 dias sem açúcar?')){P.sugarStart=k;P.sugarDone={};showRealNotification('Desafio reiniciado','Começando uma nova sequência hoje.');}}
+    if(done){P.sugarDone[k]=true;showRealNotification('Sem açúcar hoje ✅','Mais um dia contabilizado no desafio de '+window.BLACKFIT_SETTINGS.sugar_days+' dias.');}
+    else{if(confirm('Reiniciar o desafio de '+window.BLACKFIT_SETTINGS.sugar_days+' dias sem açúcar?')){P.sugarStart=k;P.sugarDone={};showRealNotification('Desafio reiniciado','Começando uma nova sequência hoje.');}}
     savePro();renderPro();
   };
   function renderPro(){
-    const k=todayKey();const day=Math.min(120,daysBetween(P.sugarStart,k)+1);const pct=Math.min(100,Math.round(day/120*100));
-    const sd=document.getElementById('sugar-days');if(sd)sd.textContent=day+'/120';
-    const ss=document.getElementById('sugar-sub');if(ss)ss.textContent=(P.sugarDone[k]?'Concluído hoje · ':'')+'Dia '+day+' de 120';
+    const limit=window.BLACKFIT_SETTINGS.sugar_days;
+    const k=todayKey();const day=Math.min(limit,daysBetween(P.sugarStart,k)+1);const pct=Math.min(100,Math.round(day/limit*100));
+    const sd=document.getElementById('sugar-days');if(sd)sd.textContent=day+'/'+limit;
+    const ss=document.getElementById('sugar-sub');if(ss)ss.textContent=(P.sugarDone[k]?'Concluído hoje · ':'')+'Dia '+day+' de '+limit;
     const sb=document.getElementById('sugar-bar');if(sb)sb.style.width=pct+'%';
     const st=goalState();
-    const goals=[['panturrilha','🦵','Panturrilha'],['abdomen','🔥','Abdômen'],['antebraco','💪','Antebraço']];
+    const goals=window.BLACKFIT_GOALS.map(g=>[g.id,g.icon,g.name]);
     const dg=document.getElementById('daily-goals');
-    if(dg)dg.innerHTML=goals.map(([id,ic,n])=>'<div class="goal-chip '+(st[id]?'done':'')+'" onclick="toggleProGoal(\''+id+'\')"><div class="goal-icon">'+ic+'</div><div class="goal-name">'+n+'</div><div class="goal-status">'+(st[id]?'Concluído':'Meta diária')+'</div></div>').join('');
+    if(dg){dg.textContent='';for(const [id,ic,n] of goals){const el=document.createElement('div');el.className='goal-chip '+(st[id]?'done':'');el.onclick=()=>toggleProGoal(id);for(const [cls,label] of [['goal-icon',ic],['goal-name',n],['goal-status',st[id]?'Concluído':'Meta diária']]){const child=document.createElement('div');child.className=cls;child.textContent=label;el.appendChild(child);}dg.appendChild(el);}if(!goals.length){dg.textContent='Metas e atividades ainda não definidas pela central.';dg.style.gridTemplateColumns='1fr';}}
     let score=0;
-    if(P.sugarDone[k]) score+=25;
-    score+=Object.values(st).filter(Boolean).length*15;
-    try{if(typeof S!=='undefined'&&S.water>=window.BLACKFIT_WATER_GOAL)score+=20;if(typeof S!=='undefined'&&S.exChecks&&Object.keys(S.exChecks).length)score+=10;}catch(e){}
+    if(window.BLACKFIT_SETTINGS.sugar_enabled&&P.sugarDone[k]) score+=25;
+    score+=goals.filter(([id])=>st[id]).length*15;
+    try{if(typeof S!=='undefined'&&window.BLACKFIT_WATER_GOAL>0&&S.water>=window.BLACKFIT_WATER_GOAL)score+=20;if(typeof S!=='undefined'&&S.exChecks&&Object.keys(S.exChecks).length)score+=10;}catch(e){}
     const ps=document.getElementById('pro-score');if(ps)ps.textContent=Math.min(100,score);
   }
   function wrap(name){const old=window[name];if(typeof old==='function'){window[name]=function(){const r=old.apply(this,arguments);setTimeout(renderPro,0);return r;};}}
@@ -104,7 +105,7 @@
     setInterval(()=>{
       if(document.hidden) return;
       const st=goalState();
-      if(!st.panturrilha||!st.abdomen||!st.antebraco)showRealNotification('⚡ Metas rápidas','Faltam panturrilha, abdômen ou antebraço hoje.');
+      const pending=window.BLACKFIT_GOALS.filter(g=>!st[g.id]);if(pending.length)showRealNotification('⚡ Metas rápidas','Pendentes: '+pending.map(g=>g.name).join(', '));
     },3*60*60*1000);
   }
   loadPro();registerSW();
